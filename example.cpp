@@ -38,7 +38,6 @@ static PPSAPI_WORKING_SET_INFORMATION QueryWorkingSetRetry()
 	while (true)
 	{
 		PPSAPI_WORKING_SET_INFORMATION pwsi = reinterpret_cast<PPSAPI_WORKING_SET_INFORMATION>(buf);
-
 		const bool ok = K32QueryWorkingSet(GetCurrentProcess(), pwsi, bufSize);
 		if (ok)
 		{
@@ -58,7 +57,7 @@ static PPSAPI_WORKING_SET_INFORMATION QueryWorkingSetRetry()
 		void* const newBuf = realloc(buf, bufSize);
 		if (newBuf == nullptr)
 		{
-			// insert panic code here
+			// Insert panic code here
 			free(buf);
 			return nullptr;
 		}
@@ -91,6 +90,11 @@ int main(int argc, char* argv[])
 	};
 
 	const LPVOID addr = VirtualAlloc(nullptr, USUAL_PAGE_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+	if (addr == nullptr)
+	{
+		// Insert panic code here
+		return -1;
+	}
 	std::cout << "Allocated Page at " << std::hex << addr << "\n";
 
 	ULONG_PTR pageIndex = AddressToPageIndex(reinterpret_cast<ULONG_PTR>(addr));
@@ -109,7 +113,7 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
-	NtSetInformationVirtualMemory_t NtSetInformationVirtualMemory = reinterpret_cast<NtSetInformationVirtualMemory_t>(GetProcAddress(ntdll, "NtSetInformationVirtualMemory"));
+	const NtSetInformationVirtualMemory_t NtSetInformationVirtualMemory = reinterpret_cast<NtSetInformationVirtualMemory_t>(GetProcAddress(ntdll, "NtSetInformationVirtualMemory"));
 	if (NtSetInformationVirtualMemory == nullptr)
 	{
 		// Insert panic code here
@@ -121,7 +125,7 @@ int main(int argc, char* argv[])
 	entry.NumberOfBytes = USUAL_PAGE_SIZE;
 
 	DWORD vmInfo = 0;
-	NTSTATUS status = NtSetInformationVirtualMemory(GetCurrentProcess(), VmRemoveFromWorkingSetInformation, 1, &entry, &vmInfo, sizeof(vmInfo));
+	const NTSTATUS status = NtSetInformationVirtualMemory(GetCurrentProcess(), VmRemoveFromWorkingSetInformation, 1, &entry, &vmInfo, sizeof(vmInfo));
 	if (status != STATUS_SUCCESS)
 	{
 		// Insert panic code here
